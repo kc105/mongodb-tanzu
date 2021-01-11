@@ -1,0 +1,65 @@
+---
+apiVersion: mongodb.com/v1
+kind: MongoDBOpsManager
+metadata:
+  name: ops-manager-localmode
+  #name: ops-manager
+  labels:
+    app: mongodb
+
+spec:
+  replicas: 1
+  version: 4.2.4
+  # Should match metadata.name in the Kubernetes secret for the admin user
+  adminCredentials: ops-manager-admin-secret 
+
+  externalConnectivity:
+    type: NodePort
+  applicationDatabase:
+    members: 3
+    #version: 4.4.3
+    #version: 4.2.6-ent
+    persistent: true
+    podSpec:
+      cpu: '0.25'    
+  backup:
+    enabled: false
+  configuration:
+    # this enables local mode in Ops Manager must also use statefulset below
+    #automation.versions.source: local
+    #automation.versions.source: mongodb
+    mms.ignoreInitialUiSetup: "true"
+    mms.fromEmailAddr: "kc105@ntrs.com"
+    mms.ignoreInitialUiSetup: "true"
+    mms.adminEmailAddr: kc105@ntrs.com
+    mms.fromEmailAddr: kc105@ntrs.com
+    mms.mail.hostname: smtp.com
+    mms.mail.port: "25"
+    mms.mail.ssl: "false"
+    mms.mail.transport: smtp
+    mms.minimumTLSVersion: TLSv1.2
+    mms.replyToEmailAddr: kc105@ntrs.com
+    #http.proxy.host: http-proxy.ntrs.com
+    #http.proxy.port: 80
+    #http.proxy.nonProxyHosts: localhost,127.0.0.1
+    automation.versions.source: local
+  statefulSet:
+    spec:
+    # the Persistent Volume Claim will be created for each Ops Manager Pod
+      volumeClaimTemplates:
+        - metadata:
+          name: mongodb-versions
+          spec:
+            accessModes: [ "ReadWriteOnce" ]
+            resources:
+              requests:
+                storage: 20Gi
+    template:
+      spec:
+        containers:
+          - name: mongodb-ops-manager
+            volumeMounts:
+              - name: mongodb-versions
+                 # this is the directory in each Pod where all MongoDB
+                 # archives must be put
+                mountPath: /mongodb-ops-manager/mongodb-releases  
